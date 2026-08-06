@@ -7,21 +7,24 @@ teaches it CloudPeek's incident triage and investigation workflows.
 
 ## What you get
 
-- **`mcp.json`** — one remote MCP server (`streamable-http`) at
+The plugin root is the [`cloudpeek/`](cloudpeek/) directory:
+
+- **`cloudpeek/mcp.json`** — one remote MCP server (`streamable-http`) at
   `https://app.cloudpeek.ai/mcp`, exposing the full CloudPeek API as MCP
   tools: incidents, investigations, artifacts, runbooks, wiki and more.
-- **`skills/`** — workflow playbooks your agent loads on demand:
+- **`cloudpeek/skills/`** — workflow playbooks your agent loads on demand:
   - `triage-incidents` — review the incident queue and surface the small
     fraction of alerts that need a human, with a full audit-comment trail.
   - `investigate-incident` — run a structured investigation, gather evidence,
     propose remediation plans and produce a report.
-- **`plugin.json`** — the plugin manifest (Agent Plugins spec 1.0.0).
+- **`cloudpeek/plugin.json`** — the plugin manifest (Agent Plugins spec
+  1.0.0).
 
 ## Installation
 
-Any client that supports the Agent Plugins standard can install this
-repository as a plugin directory. Point your client's plugin installer at
-this repo (or a cloned copy); no build step is required.
+Any client that supports the Agent Plugins standard can install the
+`cloudpeek/` directory as a plugin. Point your client's plugin installer at
+this repository; no build step is required.
 
 ## Authentication
 
