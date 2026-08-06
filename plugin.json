@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cloudpeek",
+  "version": "0.9.8",
+  "description": "Connect your agent to CloudPeek, the AI security teammate. Triage the 5% of alerts that matter, run investigations, and manage incidents through the hosted CloudPeek MCP gateway.",
+  "author": {
+    "name": "CloudPeek",
+    "email": "support@cloudpeek.io",
+    "url": "https://cloudpeek.io"
+  },
+  "homepage": "https://cloudpeek.io",
+  "license": "UNLICENSED",
+  "keywords": ["security", "incident-response", "triage", "soc", "mcp"]
+}
