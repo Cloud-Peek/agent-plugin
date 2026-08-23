@@ -1,0 +1,37 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cloudpeek",
+  "version": "0.14.1",
+  "description": "Connect your agent to CloudPeek, the AI security teammate. Triage the 5% of alerts that matter, run investigations, and manage incidents through the hosted CloudPeek MCP gateway.",
+  "author": {
+    "name": "CloudPeek",
+    "email": "support@cloudpeek.io",
+    "url": "https://cloudpeek.io"
+  },
+  "homepage": "https://cloudpeek.io",
+  "repository": "https://github.com/Cloud-Peek/CloudPeek",
+  "license": "UNLICENSED",
+  "keywords": ["security", "incident-response", "triage", "soc", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "CloudPeek",
+    "shortDescription": "Triage and investigate security incidents",
+    "longDescription": "Work your security incident queue with CloudPeek, the AI security teammate. Review open incidents and surface the small fraction of alerts that actually need a human, with a full audit-comment trail behind every call. Run structured investigations that gather evidence, propose remediation plans, and produce a report. Tools cover incidents, investigations, artifacts, runbooks and the wiki, all through the hosted CloudPeek gateway and scoped to your own tenant.",
+    "developerName": "CloudPeek",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://cloudpeek.io",
+    "privacyPolicyURL": "https://cloudpeek.io/privacy",
+    "termsOfServiceURL": "https://cloudpeek.io/terms",
+    "brandColor": "#1762e0",
+    "logo": "./assets/logo.svg",
+    "composerIcon": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Triage my open incident queue",
+      "Investigate the highest severity incident",
+      "What incidents were raised overnight?",
+      "Summarise this incident and propose a remediation plan"
+    ]
+  }
+}
