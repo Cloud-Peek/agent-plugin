@@ -1,0 +1,39 @@
+{
+  "name": "cloudpeek-plugins",
+  "description": "Official CloudPeek plugins: incident triage and investigation in your own tenant, and anonymous CVE and CWE lookup from a public indexed corpus.",
+  "owner": {
+    "name": "CloudPeek",
+    "email": "support@cloudpeek.io",
+    "url": "https://cloudpeek.io"
+  },
+  "plugins": [
+    {
+      "name": "cloudpeek",
+      "source": "./cloudpeek",
+      "description": "Connect your agent to CloudPeek, the AI security teammate. Triage the 5% of alerts that matter, run investigations, and manage incidents through the hosted CloudPeek MCP gateway.",
+      "version": "0.14.1",
+      "author": {
+        "name": "CloudPeek",
+        "email": "support@cloudpeek.io",
+        "url": "https://cloudpeek.io"
+      },
+      "homepage": "https://cloudpeek.io",
+      "license": "UNLICENSED",
+      "keywords": ["security", "incident-response", "triage", "soc", "mcp"]
+    },
+    {
+      "name": "cloudpeek-vulnerability-intelligence",
+      "source": "./cloudpeek-vulnerability-intelligence",
+      "description": "Look up CVEs and CWEs from CloudPeek's indexed Open Knowledge Format corpus. Deterministic, source-grounded vulnerability intelligence with no embeddings and no model calls.",
+      "version": "0.1.0",
+      "author": {
+        "name": "CloudPeek",
+        "email": "support@cloudpeek.io",
+        "url": "https://cloudpeek.io"
+      },
+      "homepage": "https://cloudpeek.io",
+      "license": "UNLICENSED",
+      "keywords": ["security", "vulnerability", "cve", "cwe", "mcp"]
+    }
+  ]
+}

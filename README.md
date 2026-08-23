@@ -59,14 +59,84 @@ It reads a public corpus and holds nothing about you.
 
 ## Installation
 
-Any client that supports the Agent Plugins standard can install either
-directory as a plugin root. Point your client's plugin installer at this
-repository and pick the plugin you want; no build step is required.
+Both plugins are plain manifests. There is no build step and nothing to
+compile: your client reads `mcp.json`, connects to the hosted endpoint, and
+loads the skills on demand.
 
-The vulnerability plugin additionally ships `.claude-plugin/` and
-`.codex-plugin/` catalogue manifests plus `assets/`, so it presents with a
-display name, description, icon and starter prompts in clients that read
-those.
+Each plugin root carries a spec manifest (`plugin.json`) plus one catalogue
+manifest per client, so the same directory installs everywhere:
+
+| File | Read by |
+| --- | --- |
+| `plugin.json` | Agent Plugins 1.0.0 spec clients |
+| `.claude-plugin/plugin.json` | Claude Code |
+| `.codex-plugin/plugin.json` | Codex |
+| `.cursor-plugin/plugin.json` | Cursor |
+
+All of them point at the one shared `mcp.json`, so the endpoint is defined
+exactly once.
+
+### Claude Code
+
+```shell
+/plugin marketplace add Cloud-Peek/agent-plugin
+/plugin install cloudpeek-vulnerability-intelligence@cloudpeek-plugins
+/plugin install cloudpeek@cloudpeek-plugins
+```
+
+Keep the `@cloudpeek-plugins` suffix. Claude Code refreshes the catalogue
+before a named install, so without it you can install a stale cached version.
+
+To add just the MCP server without the skills:
+
+```shell
+claude mcp add --transport http cloudpeek-vulnerability-intelligence https://mcp.cloudpeek.ai/vulnerability/mcp
+```
+
+### Cursor
+
+Install the plugin from **Customize** in the sidebar, or add this repository
+as a team marketplace under **Dashboard → Plugins → Import from Repo**.
+
+To add only the MCP server, put this in `.cursor/mcp.json` for one project, or
+`~/.cursor/mcp.json` for every project:
+
+```json
+{
+  "mcpServers": {
+    "cloudpeek-vulnerability-intelligence": {
+      "url": "https://mcp.cloudpeek.ai/vulnerability/mcp"
+    }
+  }
+}
+```
+
+### OpenCode
+
+OpenCode plugins are JavaScript modules rather than manifest bundles, so
+these plugins install as MCP servers. Add to `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "cloudpeek-vulnerability-intelligence": {
+      "type": "remote",
+      "url": "https://mcp.cloudpeek.ai/vulnerability/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+Swap the URL for `https://app.cloudpeek.ai/mcp` to add the CloudPeek gateway
+instead. Note that the gateway needs an OAuth sign-in, so a client that cannot
+run that flow will not connect.
+
+### Any other MCP client
+
+Point it at `https://mcp.cloudpeek.ai/vulnerability/mcp` over streamable HTTP.
+No credentials are required.
 
 ## Versioning and sync
 
