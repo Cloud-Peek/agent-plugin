@@ -63,18 +63,35 @@ Both plugins are plain manifests. There is no build step and nothing to
 compile: your client reads `mcp.json`, connects to the hosted endpoint, and
 loads the skills on demand.
 
-Each plugin root carries a spec manifest (`plugin.json`) plus one catalogue
-manifest per client, so the same directory installs everywhere:
+### Compatible clients
+
+Each plugin root is a portable [Agent Plugins 1.0.0](https://agent-plugins.org/)
+package: `plugin.json`, `skills/`, and `mcp.json` in the fixed locations the
+spec defines. Every client on the
+[compatible clients list](https://agent-plugins.org/compatible-clients) can
+load it as-is, and all of them support both Agent Skills and the Streamable
+HTTP transport these plugins use:
+
+GitHub Copilot · VS Code · Cursor · ChatGPT & Codex · Kiro · Grok Bot ·
+OpenClaw · NanoClaw · Hermes Agent
+
+Some clients also read a catalogue manifest for presentation — display name,
+icon, starter prompts — so those are shipped alongside. They are additions,
+never replacements: a client that reads none of them still installs the plugin
+from the root manifest.
 
 | File | Read by |
 | --- | --- |
-| `plugin.json` | Agent Plugins 1.0.0 spec clients |
+| `plugin.json` + `skills/` + `mcp.json` | every compatible client |
 | `.claude-plugin/plugin.json` | Claude Code |
 | `.codex-plugin/plugin.json` | Codex |
 | `.cursor-plugin/plugin.json` | Cursor |
 
-All of them point at the one shared `mcp.json`, so the endpoint is defined
+Every one of them points at the single `mcp.json`, so the endpoint is defined
 exactly once.
+
+Marketplace catalogues live at `.claude-plugin/marketplace.json` for Claude
+Code and `.github/plugin/marketplace.json` for VS Code and GitHub Copilot.
 
 ### Claude Code
 
@@ -91,6 +108,24 @@ To add just the MCP server without the skills:
 
 ```shell
 claude mcp add --transport http cloudpeek-vulnerability-intelligence https://mcp.cloudpeek.ai/vulnerability/mcp
+```
+
+### VS Code and GitHub Copilot
+
+Run **Chat: Install Plugin From Source** and give it this repository's URL, or
+browse the Extensions view with the `@agentPlugins` filter.
+
+To add only the MCP server, put this in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "cloudpeek-vulnerability-intelligence": {
+      "type": "http",
+      "url": "https://mcp.cloudpeek.ai/vulnerability/mcp"
+    }
+  }
+}
 ```
 
 ### Cursor
@@ -133,9 +168,15 @@ Swap the URL for `https://app.cloudpeek.ai/mcp` to add the CloudPeek gateway
 instead. Note that the gateway needs an OAuth sign-in, so a client that cannot
 run that flow will not connect.
 
+### Kiro, Grok Bot, OpenClaw, NanoClaw, Hermes Agent
+
+These all load the portable package directly. Follow the setup instructions on
+the [compatible clients list](https://agent-plugins.org/compatible-clients) and
+point the client at this repository.
+
 ### Any other MCP client
 
-Point it at `https://mcp.cloudpeek.ai/vulnerability/mcp` over streamable HTTP.
+Point it at `https://mcp.cloudpeek.ai/vulnerability/mcp` over Streamable HTTP.
 No credentials are required.
 
 ## Versioning and sync
