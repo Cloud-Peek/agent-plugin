@@ -1,0 +1,120 @@
+name: Open plugin sync pull request
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/open-sync-pr.yml"
+  push:
+    branches:
+      - automation/sync-agent-plugins
+  schedule:
+    - cron: "27 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: open-plugin-sync-pr
+  cancel-in-progress: false
+
+env:
+  SYNC_BRANCH: automation/sync-agent-plugins
+
+jobs:
+  validate:
+    name: Validate workflow guardrails
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Check out workflow change
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Verify immutable and review-only behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow=.github/workflows/open-sync-pr.yml
+          action_pattern='use''s: [^@[:space:]]+@[0-9a-f]{40}'
+          forbidden_pattern='pull_request''_target|gh pr ''merge|--fo''rce|secrets''\.'
+          test "$(grep -Ec "$action_pattern" "$workflow")" -eq 2
+          ! grep -Eq "$forbidden_pattern" "$workflow"
+          grep -Fq 'pull-requests: write' "$workflow"
+          grep -Fq 'contents: read' "$workflow"
+
+  open:
+    name: Open sync pull request
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check out public main
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Open pull request when the sync branch differs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if ! git ls-remote --exit-code --heads origin "refs/heads/$SYNC_BRANCH" >/dev/null; then
+            echo "No sync branch exists."
+            exit 0
+          fi
+
+          git fetch origin \
+            "+refs/heads/$SYNC_BRANCH:refs/remotes/origin/$SYNC_BRANCH"
+          if git diff --quiet origin/main "origin/$SYNC_BRANCH"; then
+            echo "The sync branch matches main."
+            exit 0
+          fi
+
+          open_pr="$(
+            gh pr list \
+              --repo "$GITHUB_REPOSITORY" \
+              --state open \
+              --head "$SYNC_BRANCH" \
+              --json number \
+              --jq '.[0].number // ""'
+          )"
+          if [[ -n "$open_pr" ]]; then
+            echo "Sync pull request #${open_pr} is already open."
+            exit 0
+          fi
+
+          source_sha="$(
+            git log -1 --format=%B "origin/$SYNC_BRANCH" |
+              sed -n 's/^CloudPeek-Source-SHA: //p' |
+              head -1
+          )"
+          if [[ ! "$source_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The sync commit does not carry a valid CloudPeek source SHA." >&2
+            exit 1
+          fi
+
+          body_file="$RUNNER_TEMP/agent-plugin-sync-pr.md"
+          printf '%s\n' \
+            "Automated mirror update from Cloud-Peek/CloudPeek." \
+            "" \
+            "Source commit: ${source_sha}" \
+            "" \
+            "The private source workflow ran the authoritative write and check commands. This PR is not auto-merged." \
+            > "$body_file"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$SYNC_BRANCH" \
+            --title "chore(plugins): sync from CloudPeek ${source_sha:0:12}" \
+            --body-file "$body_file"

@@ -8,10 +8,10 @@ different services, and authenticate differently, so install whichever suits
 the agent you are setting up. Each top-level directory is a complete plugin
 root.
 
-| Plugin | Directory | Job | Access |
-| --- | --- | --- | --- |
-| CloudPeek | [`cloudpeek/`](cloudpeek/) | Triage and investigate incidents in your own tenant | Sign in to your CloudPeek tenant |
-| CloudPeek Vulnerability Intelligence | [`cloudpeek-vulnerability-intelligence/`](cloudpeek-vulnerability-intelligence/) | Look up CVEs and CWEs from a public indexed corpus | Anonymous, no account |
+| Plugin                               | Directory                                                                        | Job                                                 | Access                           |
+| ------------------------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------- |
+| CloudPeek                            | [`cloudpeek/`](cloudpeek/)                                                       | Triage and investigate incidents in your own tenant | Sign in to your CloudPeek tenant |
+| CloudPeek Vulnerability Intelligence | [`cloudpeek-vulnerability-intelligence/`](cloudpeek-vulnerability-intelligence/) | Look up CVEs and CWEs from a public indexed corpus  | Anonymous, no account            |
 
 ## CloudPeek
 
@@ -80,12 +80,12 @@ icon, starter prompts — so those are shipped alongside. They are additions,
 never replacements: a client that reads none of them still installs the plugin
 from the root manifest.
 
-| File | Read by |
-| --- | --- |
+| File                                   | Read by                 |
+| -------------------------------------- | ----------------------- |
 | `plugin.json` + `skills/` + `mcp.json` | every compatible client |
-| `.claude-plugin/plugin.json` | Claude Code |
-| `.codex-plugin/plugin.json` | Codex |
-| `.cursor-plugin/plugin.json` | Cursor |
+| `.claude-plugin/plugin.json`           | Claude Code             |
+| `.codex-plugin/plugin.json`            | Codex                   |
+| `.cursor-plugin/plugin.json`           | Cursor                  |
 
 Every one of them points at the single `mcp.json`, so the endpoint is defined
 exactly once.
@@ -184,9 +184,9 @@ No credentials are required.
 Both plugins are mirrored from the CloudPeek monorepo, which is the source of
 truth:
 
-| Directory | Source |
-| --- | --- |
-| `cloudpeek/` | `src/mcp-server/plugin/` |
+| Directory                               | Source                                               |
+| --------------------------------------- | ---------------------------------------------------- |
+| `cloudpeek/`                            | `src/mcp-server/plugin/`                             |
 | `cloudpeek-vulnerability-intelligence/` | `src/plugins/vulnerability-intelligence-mcp/plugin/` |
 
 Each `plugin.json` version tracks the release of the service it was published
@@ -203,10 +203,13 @@ bun scripts/sync-agent-plugins.mjs --check <path-to-this-checkout>   # report dr
 bun scripts/sync-agent-plugins.mjs --write <path-to-this-checkout>   # bring in line
 ```
 
-The pinned [sync workflow](.github/workflows/sync-agent-plugins.yml) performs
-the same check hourly and on manual dispatch. When drift exists it opens or
-updates a normal-history pull request; it never pushes directly to `main` or
-auto-merges. Pull-request runs use a separate read-only validation job.
+The private source repository's pinned sync workflow performs the same check
+hourly, after relevant changes land on `main`, and on manual dispatch. Its
+short-lived, repository-scoped App token may update only the stable
+`automation/sync-agent-plugins` branch. This repository's
+[PR-opening workflow](.github/workflows/open-sync-pr.yml) cannot read the
+private source; it only opens a normal-history review PR when that branch
+differs from `main`. Neither workflow pushes directly to `main` or auto-merges.
 
 Contract tests in the monorepo verify the manifests against the spec and check
 that every tool referenced by a skill exists in the live catalogue.
