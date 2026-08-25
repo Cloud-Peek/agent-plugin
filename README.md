@@ -206,12 +206,22 @@ bun scripts/sync-agent-plugins.mjs --write <path-to-this-checkout>   # bring in 
 The private source repository's pinned sync workflow performs the same check
 hourly, after relevant changes land on `main`, and on manual dispatch. Its
 short-lived CloudPeekAI App token is scoped to this repository with only
-contents and pull-request write. The bot updates the stable
-`automation/sync-agent-plugins` branch and opens a normal-history review PR.
-It requests squash auto-merge only after GitHub confirms the PR is authored by
-the verified `app/cloudpeekai` identity and its base, branch, and exact head are
-the expected values. Human-authored PRs remain manual, and the workflow never
-pushes directly to `main`.
+contents and pull-request write. The bot creates a run-specific
+`automation/sync-agent-plugins/<run>-<attempt>` branch and opens a one-commit
+review PR rooted directly on public `main`. It publishes only the two portable
+plugin roots and the two marketplace manifests; private package files, source
+code, repository metadata, workflows, documentation, and the private source
+commit identifier are excluded. Source acquisition is a blobless partial clone
+that materializes only the reviewed inputs; its remote and Git object database
+are removed before the sync utility runs, and all private inputs are removed
+before the public write token is minted. Local, staged, tree-mode,
+commit-history, remote-head, and complete GitHub PR-file readbacks enforce the
+same allowlist. A base-branch-anchored public workflow independently requires
+the CloudPeekAI PR to be one direct-parent commit containing only regular,
+non-executable artifact files. Squash auto-merge is requested only after GitHub
+confirms the verified `app/cloudpeekai` identity and the expected paths, base,
+branch, ancestry, and exact head. Human-authored PRs remain manual, and the
+workflow never pushes directly to `main`.
 
 Contract tests in the monorepo verify the manifests against the spec and check
 that every tool referenced by a skill exists in the live catalogue.

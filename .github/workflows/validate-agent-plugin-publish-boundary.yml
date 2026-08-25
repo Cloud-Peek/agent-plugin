@@ -1,0 +1,122 @@
+name: Validate Agent Plugin publish boundary
+
+on:
+  pull_request_target:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  boundary:
+    name: Agent Plugin publish boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Reject out-of-bound automation changes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          pr_json="$RUNNER_TEMP/pr.json"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$pr_json"
+
+          bot_identity="$(jq -r '.user.login == "cloudpeekai[bot]" and .user.type == "Bot"' "$pr_json")"
+          sync_branch="$(jq -r '.head.ref | startswith("automation/sync-agent-plugins/")' "$pr_json")"
+          if [[ "$bot_identity" != "$sync_branch" ]]; then
+            echo "CloudPeekAI identity and the automation branch must match." >&2
+            exit 1
+          fi
+          if [[ "$bot_identity" == "false" ]]; then
+            echo "Human pull request; automated publish boundary is not applicable."
+            exit 0
+          fi
+
+          if ! jq -e --arg repository "$GITHUB_REPOSITORY" \
+            '.base.ref == "main" and
+             .base.repo.full_name == $repository and
+             .head.repo.full_name == $repository and
+             (.head.ref | startswith("automation/sync-agent-plugins/"))' \
+            "$pr_json" >/dev/null; then
+            echo "CloudPeekAI pull request repository or branch is not trusted." >&2
+            exit 1
+          fi
+
+          base_sha="$(jq -r '.base.sha' "$pr_json")"
+          head_sha="$(jq -r '.head.sha' "$pr_json")"
+          changed_files="$(jq -r '.changed_files' "$pr_json")"
+          commit_count="$(jq -r '.commits' "$pr_json")"
+          if [[ ! "$changed_files" =~ ^[0-9]+$ || "$changed_files" -lt 1 || "$changed_files" -gt 3000 ]]; then
+            echo "CloudPeekAI pull request file count is unsupported." >&2
+            exit 1
+          fi
+          if [[ "$commit_count" != "1" ]]; then
+            echo "CloudPeekAI pull request must contain exactly one commit." >&2
+            exit 1
+          fi
+
+          commits="$RUNNER_TEMP/pr-commits.json"
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/commits?per_page=2" > "$commits"
+          if ! jq -e --arg base "$base_sha" --arg head "$head_sha" \
+            'length == 1 and
+             .[0].sha == $head and
+             (.[0].parents | length) == 1 and
+             .[0].parents[0].sha == $base' \
+            "$commits" >/dev/null; then
+            echo "CloudPeekAI pull request is not one commit directly on public main." >&2
+            exit 1
+          fi
+
+          files="$RUNNER_TEMP/pr-files.json"
+          gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files?per_page=100" \
+            > "$files"
+
+          allowed_pattern='\A(?:(?:cloudpeek|cloudpeek-vulnerability-intelligence)/(?:plugin\.json|mcp\.json|\.claude-plugin/plugin\.json|\.codex-plugin/plugin\.json|\.cursor-plugin/plugin\.json|assets/logo\.svg|skills/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/SKILL\.md)|(?:\.claude-plugin/marketplace\.json|\.github/plugin/marketplace\.json))\z'
+          if ! jq -e --arg allowed "$allowed_pattern" --argjson expected "$changed_files" \
+            'def allowed_path:
+               type == "string" and
+               (test("[\u0000-\u001f\u007f]") | not) and
+               test($allowed);
+             [ .[][] ] as $files |
+             ($files | length) == $expected and
+             ([ $files[].filename ] | unique | length) == $expected and
+             all($files[];
+               (.filename | allowed_path) and
+               ((has("previous_filename") | not) or
+                (.previous_filename | allowed_path)))' \
+            "$files" >/dev/null; then
+            echo "CloudPeekAI PR contains a path outside the Agent Plugin boundary:" >&2
+            jq -r --arg allowed "$allowed_pattern" \
+              '.[][] |
+               (.filename, .previous_filename // empty) |
+               select((type != "string") or
+                      test("[\u0000-\u001f\u007f]") or
+                      (test($allowed) | not)) |
+               @json' \
+              "$files" >&2
+            exit 1
+          fi
+
+          tree="$RUNNER_TEMP/head-tree.json"
+          gh api "repos/$GITHUB_REPOSITORY/git/trees/$head_sha?recursive=1" > "$tree"
+          if ! jq -e --slurpfile files "$files" \
+            '(.truncated == false) and
+             (.tree as $tree |
+              all($files[0][][];
+                if .status == "removed" then true
+                else .filename as $path |
+                  any($tree[];
+                    .path == $path and .mode == "100644" and .type == "blob")
+                end))' \
+            "$tree" >/dev/null; then
+            echo "CloudPeekAI PR contains a non-regular or executable artifact." >&2
+            exit 1
+          fi
+
+          echo "CloudPeekAI PR contains one regular-file-only Agent Plugin commit on public main."
