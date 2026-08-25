@@ -205,11 +205,13 @@ bun scripts/sync-agent-plugins.mjs --write <path-to-this-checkout>   # bring in 
 
 The private source repository's pinned sync workflow performs the same check
 hourly, after relevant changes land on `main`, and on manual dispatch. Its
-short-lived, repository-scoped App token may update only the stable
-`automation/sync-agent-plugins` branch. This repository's
-[PR-opening workflow](.github/workflows/open-sync-pr.yml) cannot read the
-private source; it only opens a normal-history review PR when that branch
-differs from `main`. Neither workflow pushes directly to `main` or auto-merges.
+short-lived CloudPeekAI App token is scoped to this repository with only
+contents and pull-request write. The bot updates the stable
+`automation/sync-agent-plugins` branch and opens a normal-history review PR.
+It requests squash auto-merge only after GitHub confirms the PR is authored by
+the verified `app/cloudpeekai` identity and its base, branch, and exact head are
+the expected values. Human-authored PRs remain manual, and the workflow never
+pushes directly to `main`.
 
 Contract tests in the monorepo verify the manifests against the spec and check
 that every tool referenced by a skill exists in the live catalogue.
