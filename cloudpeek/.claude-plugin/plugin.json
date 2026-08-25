@@ -1,7 +1,7 @@
 {
   "name": "cloudpeek",
   "displayName": "CloudPeek",
-  "version": "0.14.1",
+  "version": "0.14.5",
   "description": "Connect your agent to CloudPeek, the AI security teammate. Triage the 5% of alerts that matter, run investigations, and manage incidents through the hosted CloudPeek MCP gateway.",
   "author": {
     "name": "CloudPeek",

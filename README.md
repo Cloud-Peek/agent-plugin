@@ -8,10 +8,10 @@ different services, and authenticate differently, so install whichever suits
 the agent you are setting up. Each top-level directory is a complete plugin
 root.
 
-| Plugin | Directory | Job | Access |
-| --- | --- | --- | --- |
-| CloudPeek | [`cloudpeek/`](cloudpeek/) | Triage and investigate incidents in your own tenant | Sign in to your CloudPeek tenant |
-| CloudPeek Vulnerability Intelligence | [`cloudpeek-vulnerability-intelligence/`](cloudpeek-vulnerability-intelligence/) | Look up CVEs and CWEs from a public indexed corpus | Anonymous, no account |
+| Plugin                               | Directory                                                                        | Job                                                 | Access                           |
+| ------------------------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------- |
+| CloudPeek                            | [`cloudpeek/`](cloudpeek/)                                                       | Triage and investigate incidents in your own tenant | Sign in to your CloudPeek tenant |
+| CloudPeek Vulnerability Intelligence | [`cloudpeek-vulnerability-intelligence/`](cloudpeek-vulnerability-intelligence/) | Look up CVEs and CWEs from a public indexed corpus  | Anonymous, no account            |
 
 ## CloudPeek
 
@@ -80,12 +80,12 @@ icon, starter prompts — so those are shipped alongside. They are additions,
 never replacements: a client that reads none of them still installs the plugin
 from the root manifest.
 
-| File | Read by |
-| --- | --- |
+| File                                   | Read by                 |
+| -------------------------------------- | ----------------------- |
 | `plugin.json` + `skills/` + `mcp.json` | every compatible client |
-| `.claude-plugin/plugin.json` | Claude Code |
-| `.codex-plugin/plugin.json` | Codex |
-| `.cursor-plugin/plugin.json` | Cursor |
+| `.claude-plugin/plugin.json`           | Claude Code             |
+| `.codex-plugin/plugin.json`            | Codex                   |
+| `.cursor-plugin/plugin.json`           | Cursor                  |
 
 Every one of them points at the single `mcp.json`, so the endpoint is defined
 exactly once.
@@ -184,9 +184,9 @@ No credentials are required.
 Both plugins are mirrored from the CloudPeek monorepo, which is the source of
 truth:
 
-| Directory | Source |
-| --- | --- |
-| `cloudpeek/` | `src/mcp-server/plugin/` |
+| Directory                               | Source                                               |
+| --------------------------------------- | ---------------------------------------------------- |
+| `cloudpeek/`                            | `src/mcp-server/plugin/`                             |
 | `cloudpeek-vulnerability-intelligence/` | `src/plugins/vulnerability-intelligence-mcp/plugin/` |
 
 Each `plugin.json` version tracks the release of the service it was published
@@ -202,6 +202,26 @@ never shipped:
 bun scripts/sync-agent-plugins.mjs --check <path-to-this-checkout>   # report drift
 bun scripts/sync-agent-plugins.mjs --write <path-to-this-checkout>   # bring in line
 ```
+
+The private source repository's pinned sync workflow performs the same check
+hourly, after relevant changes land on `main`, and on manual dispatch. Its
+short-lived CloudPeekAI App token is scoped to this repository with only
+contents and pull-request write. The bot creates a run-specific
+`automation/sync-agent-plugins/<run>-<attempt>` branch and opens a one-commit
+review PR rooted directly on public `main`. It publishes only the two portable
+plugin roots and the two marketplace manifests; private package files, source
+code, repository metadata, workflows, documentation, and the private source
+commit identifier are excluded. Source acquisition is a blobless partial clone
+that materializes only the reviewed inputs; its remote and Git object database
+are removed before the sync utility runs, and all private inputs are removed
+before the public write token is minted. Local, staged, tree-mode,
+commit-history, remote-head, and complete GitHub PR-file readbacks enforce the
+same allowlist. A base-branch-anchored public workflow independently requires
+the CloudPeekAI PR to be one direct-parent commit containing only regular,
+non-executable artifact files. Squash auto-merge is requested only after GitHub
+confirms the verified `app/cloudpeekai` identity and the expected paths, base,
+branch, ancestry, and exact head. Human-authored PRs remain manual, and the
+workflow never pushes directly to `main`.
 
 Contract tests in the monorepo verify the manifests against the spec and check
 that every tool referenced by a skill exists in the live catalogue.

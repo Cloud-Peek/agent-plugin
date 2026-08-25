@@ -12,13 +12,19 @@
     {
       "name": "cloudpeek",
       "description": "Connect your agent to CloudPeek, the AI security teammate. Triage the 5% of alerts that matter, run investigations, and manage incidents through the hosted CloudPeek MCP gateway.",
-      "version": "0.14.1",
+      "version": "0.14.5",
       "author": {
         "name": "CloudPeek",
         "url": "https://cloudpeek.io"
       },
       "homepage": "https://cloudpeek.io",
-      "keywords": ["security", "incident-response", "triage", "soc", "mcp"],
+      "keywords": [
+        "security",
+        "incident-response",
+        "triage",
+        "soc",
+        "mcp"
+      ],
       "license": "UNLICENSED",
       "repository": "https://github.com/Cloud-Peek/agent-plugin",
       "source": {
@@ -36,7 +42,13 @@
         "url": "https://cloudpeek.io"
       },
       "homepage": "https://cloudpeek.io",
-      "keywords": ["security", "vulnerability", "cve", "cwe", "mcp"],
+      "keywords": [
+        "security",
+        "vulnerability",
+        "cve",
+        "cwe",
+        "mcp"
+      ],
       "license": "UNLICENSED",
       "repository": "https://github.com/Cloud-Peek/agent-plugin",
       "source": {
