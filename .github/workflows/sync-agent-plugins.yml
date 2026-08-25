@@ -1,0 +1,160 @@
+name: Sync from CloudPeek
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/sync-agent-plugins.yml"
+      - ".claude-plugin/marketplace.json"
+      - ".github/plugin/marketplace.json"
+      - "cloudpeek/**"
+      - "cloudpeek-vulnerability-intelligence/**"
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: sync-agent-plugins
+  cancel-in-progress: false
+
+env:
+  BUN_VERSION: "1.3.10"
+
+jobs:
+  validate:
+    name: Validate public mirror
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out public plugin pull request
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          path: public
+          persist-credentials: false
+
+      - name: Check out authoritative CloudPeek source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: Cloud-Peek/CloudPeek
+          ref: main
+          path: source
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Verify mirror is exact
+        run: >-
+          bun "$GITHUB_WORKSPACE/source/scripts/sync-agent-plugins.mjs"
+          --check "$GITHUB_WORKSPACE/public"
+
+  sync:
+    name: Open or update sync pull request
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out public plugin main
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          path: public
+
+      - name: Check out authoritative CloudPeek source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: Cloud-Peek/CloudPeek
+          ref: main
+          path: source
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Detect drift
+        id: drift
+        shell: bash
+        run: |
+          set +e
+          bun "$GITHUB_WORKSPACE/source/scripts/sync-agent-plugins.mjs" \
+            --check "$GITHUB_WORKSPACE/public"
+          status=$?
+          set -e
+          case "$status" in
+            0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$status" ;;
+          esac
+
+      - name: Update or open sync pull request
+        if: steps.drift.outputs.changed == 'true'
+        working-directory: public
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          source_sha="$(git -C "$GITHUB_WORKSPACE/source" rev-parse HEAD)"
+          open_head="$(
+            gh pr list \
+              --repo "$GITHUB_REPOSITORY" \
+              --state open \
+              --json headRefName \
+              --jq '[.[] | select(.headRefName | startswith("automation/sync-agent-plugins-"))][0].headRefName // ""'
+          )"
+
+          if [[ -n "$open_head" ]]; then
+            branch="$open_head"
+            new_pr=false
+            git fetch origin "$branch"
+            git switch --create "$branch" --track "origin/$branch"
+            git merge --no-edit origin/main
+          else
+            short_source="${source_sha:0:12}"
+            branch="automation/sync-agent-plugins-${short_source}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            new_pr=true
+            git switch --create "$branch"
+          fi
+
+          bun "$GITHUB_WORKSPACE/source/scripts/sync-agent-plugins.mjs" \
+            --write "$GITHUB_WORKSPACE/public"
+          bun "$GITHUB_WORKSPACE/source/scripts/sync-agent-plugins.mjs" \
+            --check "$GITHUB_WORKSPACE/public"
+
+          if ! git diff --quiet; then
+            git add --all
+            git commit -m "chore(plugins): sync from CloudPeek ${source_sha:0:12}"
+          fi
+          git push --set-upstream origin "$branch"
+
+          if [[ "$new_pr" == "true" ]]; then
+            body_file="$RUNNER_TEMP/agent-plugin-sync-pr.md"
+            printf '%s\n' \
+              "Automated mirror update from Cloud-Peek/CloudPeek." \
+              "" \
+              "Source commit: ${source_sha}" \
+              "" \
+              "The workflow ran the authoritative write and check commands. This PR is not auto-merged." \
+              > "$body_file"
+            gh pr create \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --head "$branch" \
+              --title "chore(plugins): sync from CloudPeek ${source_sha:0:12}" \
+              --body-file "$body_file"
+          fi

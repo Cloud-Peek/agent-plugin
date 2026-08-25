@@ -203,6 +203,11 @@ bun scripts/sync-agent-plugins.mjs --check <path-to-this-checkout>   # report dr
 bun scripts/sync-agent-plugins.mjs --write <path-to-this-checkout>   # bring in line
 ```
 
+The pinned [sync workflow](.github/workflows/sync-agent-plugins.yml) performs
+the same check hourly and on manual dispatch. When drift exists it opens or
+updates a normal-history pull request; it never pushes directly to `main` or
+auto-merges. Pull-request runs use a separate read-only validation job.
+
 Contract tests in the monorepo verify the manifests against the spec and check
 that every tool referenced by a skill exists in the live catalogue.
 
